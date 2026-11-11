@@ -1,9 +1,9 @@
 # 🧬 Applied Biostatistical Analysis of Gene Expression in *The Simpsons* Population
 
-![R](https://img.shields.io/badge/Language-R%20%3E%3D%204.0-blue.svg)
-![License](https://img.shields.io/badge/License-MIT-green.svg)
+[![Language](https://img.shields.io/badge/Language-R%20(Bioconductor)-blue)](#)
 ![Status](https://img.shields.io/badge/Analysis-Completed-brightgreen)
 ![Topic](https://img.shields.io/badge/Topic-Bioinformatics%20%26%20Biostatistics-orange)
+[![Context](https://img.shields.io/badge/Context-UNIR%20Master's%20Project-green)](#)
 
 ## 📌 Overview
 
