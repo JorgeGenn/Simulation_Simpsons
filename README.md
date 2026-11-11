@@ -5,6 +5,8 @@
 ![Status](https://img.shields.io/badge/Analysis-Completed-brightgreen)
 ![Topic](https://img.shields.io/badge/Topic-Bioinformatics%20%26%20Biostatistics-orange)
 
+## 📌 Overview
+
 An end-to-end bioinformatics and biostatistical pipeline implemented in **R Markdown**. This study evaluates non-parametric gene expression profiles, dimensionality reduction via Principal Component Analysis (PCA), spatial clustering, Spearman correlation heatmaps, and multivariate logistic regression modeling to predict overweight/obesity risk ($N = 59$, 37 target genes).
 
 ---
@@ -13,7 +15,8 @@ An end-to-end bioinformatics and biostatistical pipeline implemented in **R Mark
 
 This project analyzes simulated genomic and clinical data from *The Simpsons* universe to uncover latent biological pathways driving metabolic phenotypes. Due to non-normal transcriptional distributions, non-parametric methods were implemented throughout. 
 
-Key insights include:
+## Key insights include:
+
 * **Transcriptional Dysregulation:** A distinct multigenic cluster (*POMC*, *LEPR*, *ANO4*) correlates strongly with obesity phenotypes and spatial divergence in PCA space.
 * **Dimensionality Reduction:** The first two principal components (PC1 & PC2) explain 21.04% of total biological variance (PC1: 12.48%, PC2: 8.56%), reflecting multi-pathway complexity.
 * **Clinical Prediction:** Multivariate logistic regression demonstrates that the top tertile of Component 2 (*CADM2*-dominated) exhibits a statistically significant protective effect against overweight status ($\text{OR} = 0.0$, $95\%\text{ CI: } 0.0\text{--}0.7$, $p = 0.047$).
@@ -53,7 +56,10 @@ Key insights include:
 │   (Forest Plot & AIC)     │  • Predictors: PC Tertiles + 14 clinical covariates
 └───────────────────────────┘
 ```
-
+## 📁 Project Files & Deliverables
+- **`Simulation_Simpsons.html`**: The primary reference file. This is a self-contained, interactive HTML report rendered from RMarkdown (using Pandoc and jQuery). It compiles all source code, statistical outputs, and graphical visualizations of the entire pipeline.
+- **`Simulation_Simpsons.Rmd`**: The source code containing the raw R scripts and markdown narrative.
+- **`data/`**: Directory containing raw expression counts and clinical metadata.
 ---
 
 ## 🛠️ Required R Packages
@@ -84,35 +90,34 @@ mis_paquetes <- c(
 ---
 
 ## 🚀 How to Run & Reproduce
+### Option 1: Local R Environment
 
-1. **Clone the Repository:**
    ```bash
    git clone https://github.com/your-username/simpsons-gene-expression-r.git
+
    cd simpsons-gene-expression-r
+1. Open the project in RStudio and restore dependencies:
+
+  R. renv::restore()
+
+2. Render the RMarkdown report:
+
+  rmarkdown::render("Simulation_Simpsons.Rmd")
    ```
 
-2. **Open in RStudio:**
-   Open `Simulation_Simpsons.Rmd` (or the primary R Markdown file) inside RStudio.
+### Option 2: Docker Container 
+   ```bash
+git clone https://github.com/your-username/simpsons-gene-expression-r.git
 
-3. **Knit the Document:**
-   Click the **Knit** button or run the following command in your R console to build the standalone HTML report:
-   ```r
-   rmarkdown::render("Simulation_Simpsons.Rmd", output_format = "html_document")
+1. Build the Docker image:
+
+ sudo docker build -t simpsons-biostats .
+
+2. Run the container and access RStudio Server at http://localhost:8787:
+
+sudo docker run -d -p 8787:8787 -e PASSWORD=yourpassword --name simpsons-rstudio simpsons-biostats
+
    ```
-
----
-
-## 📁 Repository Structure
-
-```text
-.
-├── Simulation_Simpsons.Rmd  # Primary R Markdown analysis script
-├── estilos.css              # Custom styling for HTML output
-├── README.md                # Project documentation
-├── campana_gauss_95.png     # Methodology figure for Gaussian distribution
-└── output/
-    └── Simulation_Simpsons.html # Standalone compiled HTML report
-```
 
 ---
 
@@ -122,5 +127,3 @@ mis_paquetes <- c(
 ---
 
 ## 📜 License
-
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
