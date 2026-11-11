@@ -1,0 +1,1562 @@
+---
+title: "Cross-Disciplinary Project in R (I): Applied Biostatistical Analysis of Gene Expression in The Simpsons"
+author: "Jorge Hurtado Soriano"
+date: "2026-09-30"
+output: 
+  html_document:
+    theme: default             # Base visual theme
+    toc: true                  # Enable table of contents (TOC)
+    toc_float:
+      collapsed: false         # Show all sections expanded by default
+      smooth_scroll: true      # Smooth scrolling navigation on click
+    toc_depth: 2               # Include section headers up to level 2 (##)
+    number_sections: true      # Automatically number headers (1., 1.1., etc.)
+    code_folding: hide         # Hide code chunks by default with view toggle
+    css: styles.css            # Link custom CSS stylesheet
+  word_document: default
+---
+<style>
+p { text-align: justify; }
+h1, h2, h3, h4 { text-align: center; }
+h1.title, h4.author, h4.date { text-align: left; }
+pre, code { text-align: left; }
+</style>
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Workflow Overview
+
+A dataset will be analyzed using R and R Markdown to generate an HTML report through the following steps:
+
+1. **Document setup and library imports**
+2. **Introduction and methodological rationale**
+3. **Normality analysis**
+4. **Principal component analysis (PCA)**
+5. **Data visualization**
+6. **Individual clustering**
+7. **Descriptive analysis stratified by tertiles**
+8. **Predictive modeling (logistic regression)**
+9. **Results**
+10. **Analysis conclusions**
+11. **References**
+
+```{r workflow-setup}
+# Dataset analysis workflow in R Markdown:
+# 1. Document setup and library imports
+# 2. Introduction and methodological rationale
+# 3. Normality analysis
+# 4. Principal Component Analysis (PCA)
+# 5. Data visualization
+# 6. Individual clustering
+# 7. Descriptive analysis stratified by tertiles
+# 8. Predictive modeling (logistic regression)
+# 9. Results
+# 10. Analysis conclusions
+# 11. References
+
+# Configuración del documento y librerías  
+```  
+
+First, the R Markdown file will be configured with the following parameters:
+
+```{}
+
+# Configure the R Markdown file with the following specifications:
+
+#   * title: "Cross-Disciplinary Project in R (I): Applied Biostatistical Analysis of Gene Expression in The Simpsons"
+#   * author: "First Name and 2 Surnames".
+#   * date: "yyyy-mm-dd".
+#   * output: html_document.
+
+# This will generate the R Markdown file to work with.
+
+```
+
+The following packages will be used:
+
+``` {r, message=FALSE, warning=FALSE}
+
+# R Markdown global configuration
+knitr::opts_chunk$set(echo = TRUE, warning = FALSE, message = FALSE)
+
+# Automatic package preparation chunk
+
+# 1. List of all packages required for the project
+mis_paquetes <- c(
+  "tidyverse", "gtsummary", "gt", "rmarkdown",
+  "knitr", "stats", "readr", "dplyr", "tidyr", "factoextra", "reshape", "ggplot2", "car", "pROC", "broom", "kableExtra"
+)
+
+# 2. Check which packages are NOT installed
+paquetes_faltantes <- mis_paquetes[!(mis_paquetes %in% installed.packages()[,"Package"])]
+
+# 3. Automatically install only missing packages (along with all dependencies)
+if(length(paquetes_faltantes) > 0) {
+  message("Instalando paquetes faltantes: ", paste(paquetes_faltantes, collapse = ", "))
+  install.packages(paquetes_faltantes, dependencies = TRUE)
+} 
+
+```
+
+``` {r, message=FALSE, warning=FALSE}
+
+
+# Global R Markdown configuration
+# ---------------------------------------------------------
+# knitr::opts_chunk$set() defines the default rules for all
+# code chunks in the document:
+# - echo = TRUE: Displays the source code in the final report.
+# - warning = FALSE: Hides minor warnings to keep the document clean.
+# - message = FALSE: Silences informational text printed during package loading.
+
+knitr::opts_chunk$set(echo = TRUE, warning = FALSE, message = FALSE)
+
+# Load all required packages for analysis and formatting
+# ---------------------------------------------------------
+
+# Bundles essential tools for data manipulation, visualization, and cleaning.
+library(tidyverse)
+
+# Package designed for creating automated descriptive statistics tables and analytical
+# models ready for academic publication.
+library(gtsummary)
+
+# Table design engine. Enables aesthetic customization (borders,
+# shading, alignment, titles) of tables generated for the final report.
+library(gt)
+
+# Core tool that compiles and renders this code alongside
+# text into the final output format (HTML, Word, or PDF).
+library(rmarkdown)
+
+# Package responsible for processing and executing each R code chunk,
+# allowing plots and tables to be dynamically embedded into the document.
+library(knitr)
+
+# Core R package essential for classical statistical analysis.
+# Contains shapiro.test() for normality testing and prcomp() for PCA.
+library(stats)
+
+# Specialized in fast data import from plain text files,
+# such as CSV or tab-delimited datasets.
+library(readr)
+
+# Provides data manipulation functions such as select() to filter 
+# columns or bind_cols() to combine tables.
+library(dplyr)
+
+# Facilitates organizing untidy data and handling missing values.
+# Works alongside dplyr for dataset preparation.
+library(tidyr)
+
+# Extracts complex mathematical results and generates multivariate visualizations
+library(factoextra)
+
+# Package required for generating heatmaps
+library(pheatmap)
+
+# Used for layer-by-layer graphic construction
+library(ggplot2)
+
+# Used for its melt() function, which transforms a two-dimensional 
+# mathematical matrix into a 3-column table (x, y, value) 
+# for ggplot2 compatibility
+library(reshape)
+
+# For assessing multicollinearity (VIF)
+library(car)
+
+# For ROC curve evaluation
+library(pROC)
+
+# For easily extracting and tidying model parameters
+library(broom)
+
+# For designing, customizing, and styling tables in R Markdown documents
+library(kableExtra)
+``` 
+
+The provided dataset is imported to perform the analysis.
+
+``` {r, message=FALSE, warning=FALSE}
+
+# 1. Link to the hosted dataset to allow automated replication of the study
+url_drive <- "https://drive.google.com/uc?export=download&id=1g4fhGhpMvN9PG6eArcLrf1Si3QwriXn8&confirm=t"
+
+# 2. Download the file locally
+download.file(url_drive, destfile = "simpson_genes.csv", mode = "wb")
+
+# 3. Read the CSV file
+simpson_genes <- read_csv("simpson_genes.csv")
+
+
+``` 
+
+Limpieza de datos: Se Verifica que no haya datos faltantes en las variables de expresión génica (ADCY3 hasta UHMK1) y si existen NA, se eliminan las filas incompletas.
+
+``` {r}
+
+# 1. Check for missing values (NA) between ADCY3 and UHMK1
+
+gen_NA <- simpson_genes %>%
+  select(ADCY3:UHMK1) %>% # Isolates columns from ADCY3 to UHMK1 without needing to list all intermediate variables.
+  anyNA()                 # Returns a logical value (TRUE or FALSE) indicating whether at least one NA value exists.
+
+# Convert the logical value to "Yes" or "No" for cleaner presentation
+na_result <- ifelse(gen_NA, "Yes", "No")
+
+print(paste("Are there missing values in the gene expression variables?:", na_result))
+
+# 2. Filter dataframe rows to remove NAs only within that specified range
+
+gensimpson_limpio <- simpson_genes %>% # gensimpson_clean will be the clean dataframe used for analysis
+  drop_na(ADCY3:UHMK1)                 # Removes only rows containing an NA within the specified gene range.
+``` 
+
+# Introduction
+
+This descriptive analysis was conducted using a simulated dataset inspired by *The Simpsons* universe. The analyzed dataset includes gene expression levels alongside phenotypic and sociodemographic variables associated with the sampled characters. The methodological study in R was structured around two main axes: 1) the evaluation of differential expression as a function of the simulated experimental conditions, and 2) the exploration of variability and dimensionality reduction within the studied population.
+
+# Methodological Rationale
+
+The methodological approach was structured around two main axes: 1) assessing the effect of the simulated experimental conditions, and 2) the stratification and exploration of variance across the sample. Additionally, normality was evaluated because gene expression data commonly follow non-parametric distributions. Therefore, robust statistical methods in R were prioritized, including the Shapiro-Wilk test to assess normality and the non-parametric Wilcoxon test. The analysis was further complemented using medians, interquartile ranges, and multivariate models to ensure biostatistical rigor. The dataset contains clinical information from 59 patients, encompassing a total of 37 genes along with sociodemographic, socioeconomic, identification (character name), anthropometric, and body composition variables, as detailed in the table below.
+
+``` {r, message=FALSE, warning=FALSE}
+
+# 1. Load the external dataset CSV file
+# The argument 'show_col_types = FALSE' prevents technical messages from being printed in the console.
+info_dataset <- read_csv("Información de interés del dataset.csv", show_col_types = FALSE)
+
+# 2. Construction and styling of the HTML table
+
+# - format = "html": Specifies HTML output format for web/reports.
+# - align = "lll": Left-aligns the content of all 3 columns ('l' = left).
+# - escape = FALSE: Allows special characters or tags to be parsed correctly.
+
+tabla_variables <- info_dataset %>%
+  kable(format = "html", align = "lll", escape = FALSE) %>%
+  
+# Applies professional visual styling based on Bootstrap:
+# - "striped": Adds alternating row shading (one light, one dark).
+# - "hover": Highlights rows when hovering with the mouse cursor.
+# - "bordered": Adds clean gridlines and borders around cells.
+# - "condensed": Reduces vertical padding to create a more compact table.
+# - full_width = FALSE: Prevents the table from stretching across the full page width.
+
+  kable_styling(bootstrap_options = c("striped", "hover", "bordered", "condensed"), full_width = FALSE) %>%
+  
+# Inserts a container with vertical scrolling:
+# - height = "450px": Limits visual height to 450 pixels to comfortably navigate all 58 rows.
+  
+  scroll_box(height = "450px") %>% 
+
+# Adds a top header row that unifies and titles the table:
+# - c("Dataset Information of Interest" = 3): Spans the title across all 3 columns.
+# - font_size = "large": Increases font size for visual hierarchy.
+# - bold = TRUE: Sets title text to bold.
+# - background = "white": Sets a clean white background for the header bar.
+
+  add_header_above(c("Dataset Information of Interest" = 3), 
+                   align = "l", font_size = "large", bold = TRUE, background = "white") 
+
+# 3. Print the clean table in the HTML document
+tabla_variables
+``` 
+
+# Hypothesis
+
+Variability in the expression of the 37 evaluated genes is not random; rather, it establishes specific transcriptional profiles that directly correlate with the population's metabolic phenotype (determined by BMI, body fat percentage, and biochemical markers such as glucose and lipids). It is hypothesized that dimensionality reduction (PCA) will identify genetic clusters that distinguish individuals at higher clinical risk.
+
+# Main Objective
+
+"To analyze the dataset using the phenotypic, sociodemographic, and gene expression profiles of *The Simpsons* population through normality testing, dimensionality reduction, and the calculation of descriptive and comparative statistics stratified by study conditions."
+
+## Secondary Objectives
+
+1. Evaluate the normal distribution of gene expression within the sample using statistical tests to determine whether parametric (Shapiro-Wilk) or non-parametric (Wilcoxon) statistics should be applied.
+2. Compare the genetic profiles of the characters based on the experimental and clinical variables simulated in the environment.
+3. Analyze the gene expression matrix by implementing multivariate analysis techniques, such as Principal Component Analysis (PCA), to identify population clustering patterns.
+
+# Methodology
+
+## Normality Analysis
+
+To evaluate whether the gene expression data follow a normal distribution, the Shapiro-Wilk test was employed, contrasting the data against the theoretical Gaussian bell curve model, which assumes that expected values under normality fall within a **95% confidence interval**. For the statistical decision rule, a significance level of **$\alpha = 0.05$** was established, whose complement corresponds to a confidence level of **$1 - \alpha = 0.95$**.
+
+```{r, echo=FALSE, fig.align='center', out.width='80%'}
+
+url_image <- "campana_gauss_95.png" # GitHub link for reproducibility
+
+knitr::include_graphics(url_image)
+
+```
+
+EConsequently, to validate this statistical assumption, the following hypotheses were formally stated:
+
+**Hypothesis Formulation and Decision Rule:** To formally evaluate the normality assumption for each gene variable, the following statistical hypotheses were established:
+
+* **A) Null Hypothesis ($H_0$): The gene expression data originate from a normally distributed population.**
+* **B) Alternative Hypothesis ($H_1$): The gene expression data do not follow a normal distribution.**
+
+The decision rule was structured by comparing the obtained $p$-value against the established significance level **($\alpha = 0.05$)**:
+
+* If **$p$-value $> 0.05$**: Fail to reject the null hypothesis ($H_0$), assuming that the data follow a normal distribution.
+* If **$p$-value $< 0.05$**: Reject the null hypothesis ($H_0$), concluding that the data do not fit a normal distribution (justifying the subsequent use of non-parametric statistics, such as the median and interquartile range).
+
+``` {r}
+
+# 1. Identify genes automatically
+# ---------------------------------------------------------
+# We use select() to specify the column range (from ADCY3 to UHMK1).
+# Then, names() extracts only the names of those columns and saves them
+# as a character vector in 'gene_list'.
+
+lista_genes <- gensimpson_limpio %>%
+  select(ADCY3:UHMK1) %>%
+  names()
+
+# 2. Create empty vectors to store results
+
+# We create two empty vectors with the same length as our gene list:
+# one numeric ('p_values') and one character ('interpretation').
+
+p_valores <- numeric(length(lista_genes))
+interpretacion <- character(length(lista_genes))
+
+# 3. Loop (for loop) to calculate Shapiro-Wilk for each gene
+
+# seq_along() creates a numeric sequence from 1 to the total number of genes.
+# The loop will automatically repeat the following instructions for each gene.
+
+for(i in seq_along(lista_genes)){
+
+  # Select the gene name corresponding to the current iteration of the loop.
+  gen_actual <- lista_genes[i]
+
+  # Extract only the column for that gene using double square brackets [[ ]].
+  # na.omit() removes any missing values (NA), as the
+  # Shapiro-Wilk test generates an error if empty cells are detected.
+  
+  datos_gen <- na.omit(gensimpson_limpio[[gen_actual]])
+
+  # Apply the Shapiro-Wilk normality test to the clean data.
+  # Using $p.value, we strictly extract the p-value (ignoring the W statistic).
+  
+  p_val <- shapiro.test(datos_gen)$p.value
+
+  # Save the results in our empty vectors at position 'i'.
+  # ifelse() evaluates: if the p-value is very small (<0.0001), it saves it in
+  # scientific notation ("%.1e") to avoid filling the table with zeros; otherwise,
+  # it rounds it to 3 decimal places ("%.3f").
+  
+  p_valores[i] <- ifelse(p_val < 0.0001, sprintf("%.1e", p_val), sprintf("%.3f", p_val))
+
+  # Compare the p-value against our significance level (alpha = 0.05).
+  # If p > 0.05, the distribution is "Normal". If less than 0.05, "Non-normal".
+  
+  interpretacion[i] <- ifelse(p_val > 0.05, "Normal", "Non-normal")
+}
+
+# 4. Construction and design of the final table
+
+# Combine all our results into a tibble.
+tabla_1 <- tibble(
+  "Variable" = lista_genes,  # Column 1: Names of the analyzed genes.
+  # rep() repeats the text "Shapiro-Wilk" for all table rows
+  "Test used" = rep("Shapiro-Wilk", length(lista_genes)),  
+  "p-value" = p_valores,   # Column 3: p-values obtained from the normality test.
+  "Interpretation" = interpretacion  # Column 4: Textual result ("Non-normal" or "Normal").
+) %>%
+
+# 5. Table formatting with gt()
+# Pass the table directly to the gt() function for visual formatting.
+gt() %>%
+
+  # Add the title. The md() function with
+  # asterisks "**" will make "Model Table 1." bold.
+  tab_header(
+    title = md("**Model Table 1.** Gene expression normality analysis")
+  ) %>%
+
+  # Center the content of all columns.
+  cols_align(   # 'cols_align()' adjusts horizontal text positioning.
+    align = "center",   # - align = "center": Centers the content.
+    # - columns = everything(): Applies this centering to absolutely all table columns.
+    columns = everything()
+  ) %>%
+
+  # Header row style: light gray background and bold text.
+  tab_style( # 'tab_style()' allows applying specific styling rules to concrete zones.
+    style = list(  
+      cell_fill(color = "#EFEFEF"),  # - cell_fill(color = "#EFEFEF"): Paints header background a very light gray.
+      cell_text(weight = "bold") # - cell_text(weight = "bold"): Changes column title typography to bold.
+    ),
+    
+    # - locations = cells_column_labels(): Specifies that this style only affects top column labels.
+    locations = cells_column_labels(columns = everything())
+  ) %>%
+
+  # Draw a complete grid by placing 1-pixel black borders
+  # on both the table body and the column labels.
+  tab_style(
+    style = cell_borders( # 'cell_borders()' draws dividing lines in the table.
+      sides = "all", # - sides = "all": Draws all four sides (top, bottom, left, right) of each cell.
+      color = "black", # - color = "black" and weight = px(1): Defines solid black borders with 1-pixel thickness.
+      weight = px(1)  
+    ),
+    locations = list( # - locations = list(cells_body(), cells_column_labels()): Applies this grid to both
+      # body cells and headers, achieving a classic grid structure.
+      cells_body(),
+      cells_column_labels()
+    )
+  ) %>%
+
+  # Force perimeter lines (top and bottom of table) to be solid black.
+  tab_options(  # 'tab_options()' modifies global options of the table structure.
+    table.border.top.color = "black", 
+    table.border.bottom.color = "black",
+    table_body.border.bottom.color = "black"
+  ) %>%
+
+  # Add footnote with methodological specifications of the test.
+  tab_source_note(
+    source_note = "Note: N=59. The Shapiro-Wilk statistical test was applied. A p-value < 0.05 assumes a Non-normal distribution."
+  )
+
+tabla_1
+``` 
+
+## Principal Component Analysis (PCA)
+
+Principal Component Analysis (PCA): A PCA is performed using the gene expression variables (ADCY3 to UHMK1). The variables are centered and scaled prior to running PCA. Additionally, the scores of the first six principal components are extracted, saved, and appended to the data frame, followed by the generation of the corresponding visualizations.
+
+``` {r, message=FALSE, warning=FALSE}
+
+# 1. Data preparation and selection of target genes
+# Select genes ADCY3 through UHMK1.
+# The pipe operator (%>%) passes the clean dataset to the function.
+# The select() function extracts a subset of columns from 'gensimpson_clean'.
+# Using the colon operator (:) instructs R to select ALL columns in that range.
+
+genes_pca_date <- gensimpson_limpio %>% 
+  select(ADCY3:UHMK1)
+
+# 2. Execute centered and scaled PCA
+# prcomp() is used with scale. = TRUE to standardize variables.
+# - center = TRUE: Centers variables by subtracting the mean of each gene
+#   (setting the new mean of all columns to exactly 0).
+# - scale. = TRUE: Scales variables by dividing by their standard deviation
+#   (setting the variance of all columns to 1).
+
+res_pca <- genes_pca_date %>%
+  select(where(~ var(.) > 0)) %>%
+  prcomp(center = TRUE, scale. = TRUE)
+
+res_pca <- prcomp(genes_pca_date, center = T, scale. = T) 
+
+# 3. Extract scores for the first 6 principal components
+# The specific element 'res_pca$x' is a matrix containing the "scores"
+# (the newly projected coordinates for each sample) in PC space.
+# - [, 1:6]: Brackets filter the matrix. Keeping the space before the comma empty
+#   retains all rows (patients). '1:6' after the comma extracts columns 1 through 6.
+# - as.data.frame(): Converts the matrix into a data frame.
+# This 6-column table is stored in 'scores_pca'.
+
+scores_pca <- as.data.frame(res_pca$x[, 1:6])
+
+# 4. Bind PCA scores to the main dataframe
+# bind_cols() combines two data frames side-by-side (column-wise matching).
+# It takes the original dataset ('gensimpson_clean') and appends the 6 new 
+# principal component score columns ('scores_pca') on the right.
+
+dataset_genes_pca <- bind_cols(gensimpson_limpio, scores_pca)
+
+
+# 5. Visualizations (Figures)
+
+# Dynamically extract variance percentages for axis labels
+varianza <- get_eig(res_pca)$variance.percent
+etiqueta_x <- sprintf("PC1 (%.1f%%)", varianza[1])
+etiqueta_y <- sprintf("PC2 (%.1f%%)", varianza[2])
+# Figure 1: Scree plot
+
+# fviz_eig() generates a bar plot showing the variance explained by each PC component.
+# - res_pca: Pass the output from the PCA model calculated earlier.
+# - addlabels = TRUE: Prints the exact percentage as a label atop each bar.
+# - ylim = c(0, 50): Sets Y-axis limits (0 to 50%) to prevent tall bars from distorting scale.
+# - + labs(title = "..."): Adds a formal title using ggplot2 syntax.
+
+grafico_varianza <- fviz_eig(res_pca, addlabels = T, ylim = c(0, 50)) +
+  labs(title = expression(bold("Figure 1.") ~ "Variance explained per component"))
+
+# Figure 2: Variables plot (Correlation and contribution)
+
+# fviz_pca_var() visualizes variables (genes) in principal component space.
+# - col.var = "cos2": Colors variables based on their representation quality (squared cosine).
+# - gradient.cols = c("blue", "yellow", "red"): Palette definition. Low cos2 values
+#   are blue, medium are yellow, and high are red.
+# - repel = TRUE: Automatically adjusts text position to avoid overlapping labels.
+
+grafico_variables <- fviz_pca_var(res_pca, col.var = "cos2",
+                               gradient.cols = c("blue", "yellow", "red"),
+                               repel = T) +
+  labs(title = expression(bold("Figure 2.") ~ "Variables in principal component space"),
+        x = etiqueta_x, 
+        y = etiqueta_y)
+
+# Figure 3: Individuals plot (Sample projections)
+
+# fviz_pca_ind() visualizes observations (patients/individuals) projected onto PC space.
+# Useful for observing sample clustering, pattern exploration, and outlier detection.
+# - col.ind = "cos2": Colors individuals by cos2 value to evaluate representation quality.
+
+grafico_individuos <- fviz_pca_ind(res_pca, col.ind = "cos2",
+                                 gradient.cols = c("blue", "yellow", "red"),
+                                 repel = TRUE) +
+  labs(title = expression(bold("Figure 3.") ~ "Individual projection on PCA"),
+       x = etiqueta_x, 
+       y = etiqueta_y)
+
+# Figure 4: Biplot (Combined variables and individuals)
+
+# fviz_pca_biplot() combines observations and variables into a single plot
+# along the first two principal components.
+# - repel = TRUE: Prevents text overlap between gene names and patient IDs.
+# - col.var = "#2E9FDF": Sets arrow color for variables (genes) to blue.
+# - col.ind = "red": Sets point color for individuals (samples) to red.
+
+grafico_biplot <- fviz_pca_biplot(res_pca, repel = TRUE,
+                                  col.var = "#2E9FDF", col.ind = "red") +
+  labs(title = expression(bold("Figure 4.") ~ "Overall PCA biplot"), 
+       x = etiqueta_x, 
+       y = etiqueta_y)
+
+# Display plots
+grafico_varianza
+grafico_variables
+grafico_individuos
+grafico_biplot
+``` 
+
+A Component and R² table is constructed.
+
+``` {r, message=FALSE, warning=FALSE}
+
+# Table generation (Components and R²)
+# Extract patient coordinates for the first 6 dimensions
+scores_pca <- as.data.frame(res_pca$x[, 1:6])
+
+# Append these 6 new columns to the original dataframe
+gensimpson_limpio <- bind_cols(gensimpson_limpio, scores_pca)
+
+
+# 3. Create Model Table (Components and R²)
+
+# Extract the explained variance (R²) contributed by each component
+varianza_pca <- get_eig(res_pca)
+
+# Construct table structure
+tabla_varianza <- data.frame( 
+  # 'Component = paste0("PC", 1:6)' creates the first column of the table:
+  # - '1:6' generates a numeric integer sequence from 1 to 6.
+  # - 'paste0("PC", ...)' joins the text "PC" with each sequence number
+  #   without spaces, generating: "PC1", "PC2", "PC3", "PC4", "PC5", and "PC6".
+  Componente = paste0("PC", 1:6), 
+  # The name '`R²`' is placed in backticks because it 
+  # contains a special character (superscript '²').
+  # - 'pca_variance$variance.percent[1:6]': Extracts percentage values of explained variance
+  #   for the first 6 principal components.
+  # - 'sprintf("%.2f%%", ...)' formats numbers:
+  #   * '%.2f': Formats the number with exactly 2 decimal places.
+  #   * '%%': Appends a literal percentage symbol (%) at the end.
+  `R²` = sprintf("%.2f%%", varianza_pca$variance.percent[1:6]),
+  check.names = FALSE # Prevents R from removing the '²' symbol from the column name
+)
+
+# Render table using gt()
+
+# Create a new object named 'pca_model_table'. 
+# The pipe operator ('%>%') takes 'variance_table' 
+# and passes it directly to the next styling function.
+
+tabla_modelo_pca <- tabla_varianza %>% 
+  
+  # The 'gt()' function (Grammar of Tables) converts tabular data 
+  # into a specialized formatted table object
+
+  gt() %>%
+  # 'tab_header()' sets the main header title of the table.
+  # - 'md()' allows Markdown syntax:
+  #   double asterisks "**" bold the text "**PCA Table: Components and R².**", 
+  #   followed by regular text.
+  tab_header(
+    title = md("**PCA Table: Components and R².** Variance explained by the first 6 components")
+  ) %>%
+  tab_source_note(
+    # Add footnote
+    source_note = "R² values represent the percentage of variance retained by each principal component"
+  ) %>%
+  cols_align(align = "center") %>%
+  tab_options(  # 'tab_options()' modifies global structural and visual properties of the table:
+    table.border.top.color = "black",    # - 'table.border.top.color = "black"': Draws a solid black top border.
+    table.border.bottom.color = "black", # - 'table.border.bottom.color = "black"': Draws a solid black bottom border.
+    heading.title.font.weight = "bold"   # - 'heading.title.font.weight = "bold"': Ensures main title font weight is bold.
+  )
+
+# Print table in the report
+tabla_modelo_pca
+
+```
+
+A PCA loadings table is constructed. 
+
+``` {r}
+
+# 1. Extract the factor loadings matrix from the PCA object
+# Select the first 6 components
+
+# - 'res_pca$rotation': Extracts the rotation matrix or "factor loadings" from the resulting PCA object
+# - '[, 1:6]': Selects all rows while restricting columns to the first 6 principal components (PC1 to PC6).
+# - 'as.data.frame(...)': Converts the mathematical matrix into a data frame
+cargas_matriz <- as.data.frame(res_pca$rotation[, 1:6])
+
+# 2. Convert row names (genes) into a formal column named "Variable"
+
+# In a PCA data frame, gene names are typically stored as row names rather than an actual data column.
+# - 'rownames(cargas_matriz)': Extracts those row names.
+# - 'cargas_matriz$Variable <- ...': Creates a new column named "Variable" to store gene names, facilitating downstream visualization.
+cargas_matriz$Variable <- rownames(cargas_matriz)
+
+# 3. Reorder columns so that "Variable" comes first
+
+# The pipe operator ('%>%') is used alongside the 'dplyr' package:
+# - 'select(Variable, everything())': Places the "Variable" column (containing gene names) in the first position, followed by 'everything()' (which re-inserts the remaining principal component columns in their original order).
+cargas_matriz <- cargas_matriz %>% 
+  select(Variable, everything())
+
+# 4. Render the table with aesthetic formatting standards
+
+tabla_modelo_cargas <- cargas_matriz %>%
+  gt() %>% 
+  tab_header(
+    title = md("**PCA Loadings Table.** Factor loadings of gene variables across principal components")
+  ) %>%
+  
+  # Round numeric values to 3 decimal places for a clean presentation
+  
+  fmt_number(
+    columns = -Variable,
+    decimals = 3
+  ) %>%
+  tab_source_note(
+    source_note = md("*Note: Values show the contribution and correlation of each gene with respect to the principal components.*")
+  ) %>%
+  cols_align(align = "center") %>%
+  tab_options(  # 'tab_options()' allows customizing dividing line thickness and color
+    table.border.top.color = "black", # - 'table.border.top.color / width = px(2)': Creates a thick black top border (2 pixels).
+    table.border.top.width = px(2),  
+    table.border.bottom.color = "black", # - 'table.border.bottom.color / width = px(2)': Creates a thick black bottom border (2 pixels).
+    table.border.bottom.width = px(2),
+    heading.border.bottom.color = "black", # - 'heading.border.bottom.color = "black"': Draws a black dividing line below the title.
+    column_labels.border.bottom.color = "black", # - 'column_labels.border.bottom.color / width = px(2)': Draws a 2-pixel solid black line
+    column_labels.border.bottom.width = px(2)  #   separating column labels from the table body.
+  )
+
+# Print the table in your final report
+
+tabla_modelo_cargas
+
+```
+## Visualization
+
+To gain deeper insights into the multivariate structure of the data, several visualization and analytical segmentation strategies were implemented. First, variables were projected onto the factor space using the **fviz_pca_var()** function, colored according to their quality of representation **($cos^2$)** on the main plane, and their relative contributions to the principal components were plotted. Furthermore, based on the spatial coordinates of these variables, a cluster analysis (clustering) was performed to group them into three clusters according to their expression affinities. In parallel, using the quantitative body mass index values **(imc_kg_m2)**, a clinical categorical variable was created to classify the sample into Normal, Overweight, and Obesity to project and color patients in the space of the first two principal components. Finally, a three-group cluster analysis was conducted based directly on the PCA scores, allowing for the classification and visualization of individuals according to their global gene expression profiles.
+
+``` {r}
+
+# 1. Variables plot by quality of representation (cos2)
+
+# A map is generated where genes are colored according to their 'cos2' value.
+# cos2 measures how well a variable is represented in the two plotted dimensions.
+# Red arrows indicate excellent representation, whereas blue arrows indicate
+# that the gene has minimal relevance in this specific plane.
+
+fig_var_cos2 <- fviz_pca_var(res_pca,  
+                             col.var = "cos2", # Colors according to quality of representation (cos2)
+                             gradient.cols = c("blue", "yellow", "red"), # Gradient palette (blue=low, red=high)
+                             repel = T) +  # Prevents text label overlap
+  labs(title = expression(bold("Figure 5.") ~ "Variables in PCA space (cos2)"), 
+       x = etiqueta_x, # Dynamic label for X axis 
+       y = etiqueta_y) # Dynamic label for Y axis
+
+# 2. Variable clustering (3 groups) based on coordinates 
+
+# First, extract the exact coordinates for each gene in PCA space.
+coord_var <- get_pca_var(res_pca)$coord[, 1:2]
+
+# Apply k-means searching for 3 clusters among variables to identify 3 groups of 
+# genes with similar expression behavior.
+# set.seed(123) ensures reproducible results.
+
+set.seed(123)
+cluster_var <- kmeans(coord_var, centers = 3) 
+
+
+# Dynamically extract percentage of variance explained from the PCA model
+# This avoids manually typing "(%)".
+
+varianza <- get_eig(res_pca)$variance.percent
+etiqueta_x <- sprintf("PC1 (%.1f%%)", varianza[1]) # Formats X axis text to 1 decimal place
+etiqueta_y <- sprintf("PC2 (%.1f%%)", varianza[2]) # Formats Y axis text to 1 decimal place
+
+# Visualization of variable clustering
+# Plot genes colored by their assigned mathematical cluster.
+
+fig_var_cluester <- fviz_pca_var(res_pca,
+                                 col.var = as.factor(cluster_var$cluster), # Converts cluster to categorical factor for coloring
+                                 palette = c("#2E9FDF", "#E7B800", "#FC4E07"), # Specific colors for the 3 groups
+                                 legend.title = "Var Cluster", # Title for side legend
+                                 repel = T) + # Separates labels to prevent overlap
+  labs(title = expression(bold("Figure 6.") ~ "Variable clustering (3 groups)"),
+       x = etiqueta_x,
+       y = etiqueta_y)
+
+
+# 3. Variable contribution plots to components
+
+# fviz_contrib() generates a bar plot strictly displaying
+# the top 10 genes (top = 10) contributing most to the construction
+# of the first principal component (axes = 1).
+
+fig_contrib_dim1 <- fviz_contrib(res_pca, choice = "var", axes = 1, top = 10) +
+  labs(title = expression(bold("Figure 7.") ~ "Variable contribution to Dimension 1"))
+
+# 4. BMI category creation and individuals plot
+# We use dplyr (mutate and case_when) to transform numerical BMI
+# into clinical categories
+
+gensimpson_limpio <- gensimpson_limpio %>%
+  mutate(categoria_imc = case_when(
+    imc_kg_m2 < 18.5 ~ "Underweight",
+    imc_kg_m2 >= 18.5 & imc_kg_m2 < 25 ~ "Normal",
+    imc_kg_m2 >= 25 & imc_kg_m2 < 30 ~ "Overweight",
+    imc_kg_m2 >= 30 ~ "Obesity"
+  ))
+
+# 3.1 Variable contribution plots to components
+
+# fviz_contrib() generates a bar plot strictly displaying
+# the top 10 genes (top = 10) contributing most to the construction
+# of the second principal component (axes = 2).
+
+fig_contrib_dim2 <- fviz_contrib(res_pca, choice = "var", axes = 2, top = 10) +
+  labs(title = expression(bold("Figure 7.1") ~ "Variable contribution to Dimension 2"))
+
+# Plot individuals colored by their BMI category with confidence ellipses
+
+# Project patients (individuals) colored by their weight classification.
+# addEllipses = TRUE draws an ellipse enclosing the 95% confidence interval
+# for each group, allowing visual assessment of group separation (e.g., obese vs. normal).
+
+fig_ind_imc <- fviz_pca_ind(res_pca,
+                            col.ind = gensimpson_limpio$categoria_imc,  # Colors according to created BMI category
+                            palette = c("#00AFBB", "#E7B800", "#FC4E07", "#2E9FDF"), # Colors for each BMI group
+                            addEllipses = TRUE,   # Draws statistical ellipses around groups
+                            ellipse.type = "confidence", # Ellipse type based on 95% confidence interval
+                            repel = TRUE) +  # Prevents patient label overlap
+  labs(title = expression(bold("Figure 8.") ~ "Individuals in PCA space by BMI Category"),
+       x = etiqueta_x,
+       y = etiqueta_y)
+
+# 5. Individual clustering (3 groups) based on PCA scores
+
+# Apply K-means to patients.
+# Extract their scores on the first two principal components.
+
+scores_ind <- res_pca$x[, 1:2]
+
+# The algorithm groups patients into 3 clusters
+# based strictly on their overall gene expression profile.
+
+set.seed(123)
+cluster_ind <- kmeans(scores_ind, centers = 3)
+
+# Visualize individual clustering with ellipses
+
+fig_ind_cluster <- fviz_pca_ind(res_pca,
+                                col.ind = as.factor(cluster_ind$cluster), # Colors according to individual cluster number
+                                palette = c("#2E9FDF", "#E7B800", "#FC4E07"), # Color palette for the 3 patient clusters
+                                addEllipses = TRUE,  # Adds confidence ellipses
+                                legend.title = "Ind Cluster", # Legend title
+                                repel = TRUE) +  # Prevents overlapping labels
+  labs(title = expression(bold("Figure 9.") ~ "Individual clustering (3 groups)"), 
+       x = etiqueta_x,
+       y = etiqueta_y)  
+
+# Print plots
+fig_var_cos2
+fig_var_cluester
+fig_contrib_dim1
+fig_contrib_dim2
+fig_ind_imc
+fig_ind_cluster
+```
+
+## Individual Clustering
+
+Additionally, to complement the exploratory analysis, heatmaps were implemented. On one hand, Spearman correlations between genetic variables and the first six principal components were presented; on the other hand, raw expression data were visualized to examine and verify gene expression patterns across individuals.
+
+``` {r, warning=FALSE}
+
+# Base data extraction (ensuring only genes and the 6 components are included)
+
+# - 'select(ADCY3:UHMK1)': Selects only the columns corresponding to genes 
+#   (from ADCY3 to UHMK1) within the clean dataframe, creating a pure expression matrix.
+genes_matriz <- gensimpson_limpio %>% select(ADCY3:UHMK1)
+
+# - 'res_pca$x[, 1:6]': Extracts the coordinates or scores of individuals 
+#   across the first 6 principal components of the PCA and converts them into a data frame.
+scores_pca <- as.data.frame(res_pca$x[, 1:6])
+
+# 1. Spearman correlation heatmap (Genes vs 6 Components)
+
+# A) Mathematical calculation
+# Calculate Spearman correlation between each gene and each component
+
+# The 'cor()' function calculates the Spearman correlation coefficient 
+# crossing each gene against each of the 6 principal components.
+
+matriz_correlacion <- cor(genes_matriz, scores_pca, method = "spearman")
+
+# B) Reshaping data format (Melt)
+# 'melt()' converts the two-dimensional correlation matrix into a long-format data frame 
+# (with 3 columns), which is the standard format required by ggplot2.
+
+df_corr <- melt(matriz_correlacion)
+
+# Rename columns of the new dataframe
+colnames(df_corr) <- c("Gen", "Componente", "Correlacion")
+
+
+# C) Plot construction using geom_tile()
+
+heatmap_spearman <- ggplot(df_corr, aes(x = Componente, y = Gen, fill = Correlacion)) +
+  # Draws heatmap rectangles (cells) with a thin black border.
+  geom_tile(color = "black") + 
+  # Adds the exact numerical correlation value inside each cell, 
+  # rounded to 2 decimal places with a small font size (size = 3).
+  geom_text(aes(label = round(Correlacion, 2)), color = "black", size = 3) + # Numerical values
+  # Sets a divergent color scale: 
+  # Navy blue ('navy') for negative correlations, white at midpoint (0), 
+  # and intense red ('firebrick3') for positive correlations.
+  scale_fill_gradient2(low = "navy", mid = "white", high = "firebrick3", midpoint = 0) +
+  labs(title = expression(bold("Figure 10.") ~ "Heatmap: Spearman Correlations (Genes vs PCA)"),
+       x = "Principal Components",
+       y = "Gene Variables",
+       fill = "Spearman Coeff.") +
+  theme_minimal()
+
+# 2. Raw data heatmap (Expression patterns per individual)
+
+# A) Mathematical standardization
+# Raw data are scaled so all genes become visually comparable
+matriz_cruda_escalada <- scale(as.matrix(genes_matriz))
+
+# B) Name assignment
+# Creates custom labels ("Patient 1", "Patient 2", etc.) 
+# to individually identify each subject on the vertical axis of the heatmap.
+rownames(matriz_cruda_escalada) <- paste("Patient", 1:nrow(matriz_cruda_escalada))
+
+# C) Reshaping data format (Melt)
+
+# Transforms scaled matrix of patients and genes into a long table compatible with ggplot2.
+df_crudo <- melt(matriz_cruda_escalada)
+
+# Renames resulting columns.
+colnames(df_crudo) <- c("Paciente", "Gen", "Valor_Expresion")
+
+# D) Plot construction using geom_tile()
+heatmap_crudo <- ggplot(df_crudo, aes(x = Gen, y = Paciente, fill = Valor_Expresion)) +
+  geom_tile(color = "black") + 
+  scale_fill_gradient2(low = "navy", mid = "white", high = "firebrick3", midpoint = 0) +
+  labs(title = expression(bold("Figure 11.") ~ "Heatmap: Raw Gene Expression Patterns per Individual"), 
+       x = "Analyzed Genes",
+       y = "Individuals",
+       fill = "Expression\n(Scaled)") +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1), # Rotates gene text
+        axis.text.y = element_text(size = 5),               # Shrinks patient text
+        panel.grid = element_blank())                      # Clean background
+
+# Print both plots in the report
+heatmap_spearman
+heatmap_crudo
+```
+
+## Stratified Descriptive Analysis by Tertiles
+
+Due to the absence of multivariate and univariate normality in the distribution of gene expression variables, non-parametric statistics were chosen, reporting the median and interquartile range **($P_{25} - P_{75}$)** as measures of central tendency and dispersion. To evaluate the distribution of expression profiles within the latent space derived from principal component analysis (PCA), the sample was stratified based on the tertiles of the first three components **(PC1, PC2, and PC3)**. The analytical cut-off points corresponding to **the 33.33rd and 66.67th percentiles** were determined using the `quantile()` function, allowing precise discretization of the continuous scores. Subsequently, using the `cut()` function, each individual was assigned to an **ordinal tertile category ("t1", "t2", or "t3")**. Based on this categorization, bivariate descriptive tables were developed using the `gtsummary` package, facilitating the comparison and evaluation of gene variables across the gradients of variance explained by each principal component.
+
+``` {r}
+
+# Final Descriptive Table: Gene Expression by PCA Tertiles
+
+# 1. Formatting rules configuration
+
+# Rule for p-value: If very small (<0.001), use scientific notation; 
+# otherwise, show exactly 3 decimal places.
+formato_p <- function(p) {
+  ifelse(p < 0.001, formatC(p, format = "e", digits = 2), sprintf("%.3f", p))
+}
+
+# Auxiliary variable to generate independent "N" row without triggering NA errors
+# Defined as character text so gtsummary treats it as dichotomous and performs counts only.
+dataset_genes_pca$filan <- "Participants"
+
+# 2. Calculation of tertiles (cut-off points) and categorization
+
+# As instructed: quantile() is used for 33.33% and 66.67%, 
+# and cut() to label into three groups: "T1", "T2", "T3".
+# Extract principal components from res_pca and assign them to the dataframe
+dataset_genes_pca$PC1 <- res_pca$x[, "PC1"]
+dataset_genes_pca$PC2 <- res_pca$x[, "PC2"]
+dataset_genes_pca$PC3 <- res_pca$x[, "PC3"]
+
+# Component 1 (PC1)
+# - quantile(): Calculates exact cut-off points to split data into three equal 
+#   parts (probabilities of 0%, 33.33%, 66.67%, and 100%), omitting missing values (na.rm = TRUE).
+cortes_pc1 <- quantile(dataset_genes_pca$PC1, probs = c(0, 1/3, 2/3, 1), na.rm = TRUE)
+# - cut(): Converts continuous numerical PC1 into an ordinal categorical 
+#   variable with three levels labeled as "T1", "T2", and "T3".
+dataset_genes_pca$PC1_t <- cut(dataset_genes_pca$PC1, breaks = cortes_pc1, 
+                               labels = c("T1", "T2", "T3"), include.lowest = TRUE)
+
+# Component 2 (PC2): Repeat the process of calculating tertiles and categorization.
+cortes_pc2 <- quantile(dataset_genes_pca$PC2, probs = c(0, 1/3, 2/3, 1), na.rm = TRUE)
+dataset_genes_pca$PC2_t <- cut(dataset_genes_pca$PC2, breaks = cortes_pc2, 
+                               labels = c("T1", "T2", "T3"), include.lowest = TRUE)
+
+# Component 3 (PC3): Repeat the process of calculating tertiles and categorization.
+cortes_pc3 <- quantile(dataset_genes_pca$PC3, probs = c(0, 1/3, 2/3, 1), na.rm = TRUE)
+dataset_genes_pca$PC3_t <- cut(dataset_genes_pca$PC3, breaks = cortes_pc3, 
+                               labels = c("T1", "T2", "T3"), include.lowest = TRUE)
+
+# 3. Construction of descriptive tables per component
+
+# --- Table for Component 1 ---
+tbl_pc1 <- dataset_genes_pca %>% 
+  select(filan, ADCY3:UHMK1, PC1_t) %>% 
+  tbl_summary(
+    by = PC1_t, 
+    # Specify variable type: dichotomous for N, continuous for genes
+    type = list(filan ~ "dichotomous", ADCY3:UHMK1 ~ "continuous"), 
+    value = list(filan ~ "Participants"), 
+    # Summary statistics: count {n} for N row; median and IQR for genes
+    statistic = list(filan ~ "{n}", ADCY3:UHMK1 ~ "{median} ({p25} - {p75})"), 
+    # Decimals: 0 for N row, 1 for genes
+    digits = list(filan ~ 0, ADCY3:UHMK1 ~ 1), 
+    label = list(filan ~ "N"), # Label for first row
+    missing = "no" # Hide missing value rows
+  ) %>%
+  add_p(
+    include = -filan, # Exclude N row to leave p-value cell blank
+    test = ADCY3:UHMK1 ~ "kruskal.test", # Non-parametric test
+    pvalue_fun = formato_p
+  ) %>%
+  modify_header(
+    all_stat_cols() ~ "**{level}**", # Column headers as T1, T2, T3
+    p.value ~ "**p-value**"
+  )
+
+# --- Table for Component 2 ---
+tbl_pc2 <- dataset_genes_pca %>% 
+  select(filan, ADCY3:UHMK1, PC2_t) %>% 
+  tbl_summary(
+    by = PC2_t, 
+    type = list(filan ~ "dichotomous", ADCY3:UHMK1 ~ "continuous"), 
+    value = list(filan ~ "Participants"), 
+    statistic = list(filan ~ "{n}", ADCY3:UHMK1 ~ "{median} ({p25} - {p75})"), 
+    digits = list(filan ~ 0, ADCY3:UHMK1 ~ 1), 
+    label = list(filan ~ "N"),
+    missing = "no"
+  ) %>%
+  add_p(
+    include = -filan, 
+    test = ADCY3:UHMK1 ~ "kruskal.test", 
+    pvalue_fun = formato_p
+  ) %>%
+  modify_header(
+    all_stat_cols() ~ "**{level}**", 
+    p.value ~ "**p-value**"
+  )
+
+# --- Table for Component 3 ---
+tbl_pc3 <- dataset_genes_pca %>% 
+  select(filan, ADCY3:UHMK1, PC3_t) %>% 
+  tbl_summary(
+    by = PC3_t, 
+    type = list(filan ~ "dichotomous", ADCY3:UHMK1 ~ "continuous"), 
+    value = list(filan ~ "Participants"), 
+    statistic = list(filan ~ "{n}", ADCY3:UHMK1 ~ "{median} ({p25} - {p75})"), 
+    digits = list(filan ~ 0, ADCY3:UHMK1 ~ 1), 
+    label = list(filan ~ "N"),
+    missing = "no"
+  ) %>%
+  add_p(
+    include = -filan, 
+    test = ADCY3:UHMK1 ~ "kruskal.test", 
+    pvalue_fun = formato_p
+  ) %>%
+  modify_header(
+    all_stat_cols() ~ "**{level}**", 
+    p.value ~ "**p-value**"
+  )
+
+# 4. Horizontal merging and final aesthetic formatting
+
+tabla_descriptiva_final <- tbl_merge(
+  tbls = list(tbl_pc1, tbl_pc2, tbl_pc3),
+  # Grouping super-headers
+  tab_spanner = c("**Component 1**", "**Component 2**", "**Component 3**")
+) %>%
+  # Leave top-left corner blank, matching reference template
+  modify_header(label = "") %>% 
+  # Convert to 'gt' object to insert required text headers and adjust borders
+  as_gt() %>%
+  gt::tab_header(
+    title = gt::md("**Descriptive Table.** Stratified descriptive analysis by PCA tertiles")
+  ) %>%
+  gt::tab_source_note(
+    source_note = gt::md("*{Insert table footnote here}*")
+  ) %>%
+  gt::cols_align(align = "center") %>% # Center numeric values
+  gt::tab_options(
+    table.border.top.color = "black",
+    table.border.top.width = gt::px(2),
+    table.border.bottom.color = "black",
+    table.border.bottom.width = gt::px(2)
+  )
+
+# 6. Print the table
+
+tabla_descriptiva_final
+``` 
+
+## Predictive Model (Logistic Regression)
+
+To evaluate how the PCA results relate to overweight status, a multivariate logistic regression model was utilized. **The response variable was dichotomously defined as overweight status (coded as 1 for individuals with BMI > 25 kg/m², including overweight and obesity, and 0 for those with BMI < 25 kg/m² as the reference category)**. As **primary predictor variables, the ordinal categories corresponding to the principal component tertiles obtained from the principal component analysis (PCA) were incorporated**. Additionally, **clinical adjustment covariates (edad_anios, sexo, glucosa_mg_dl, tg_mg_dl, colesterol_total_mg_dl, ldl_mg_dl, hdl_mg_dl, pas_mmhg, pad_mmhg, albumina_g_dl, ast_u_l, alt_u_l, fosfatasa_alcalina_u_l, urea_mg_dl)** were included to control for potential confounding biases. Finally, to analyze and interpret the effect of each variable, key statistical parameters were extracted: **exponentiated coefficients (Odds Ratios or OR), 95% confidence intervals, and p-values**.
+
+``` {r, message=FALSE, warning=FALSE}
+
+# 1. Preparation and cleaning of variables
+
+# A) Outcome Variable (Dependent): Overweight
+# Create a binary variable: 1 if BMI >= 25 (overweight/obesity), 0 if BMI < 25 (normal weight)
+# - imc_kg_m2: Original body mass index from the dataset.
+# - ifelse(): Evaluates condition by condition. If BMI is greater than or equal to 25, 
+#   assigns 1 (classified as overweight/obesity); otherwise, assigns 0 
+#   (normal weight/underweight), following standard clinical criteria.
+gensimpson_limpio$sobrepeso <- ifelse(gensimpson_limpio$imc_kg_m2 >= 25, 1, 0)
+
+# B) Sociodemographic Adjustment Variables
+# - as.factor(): Converts text or numeric variable into a categorical factor.
+gensimpson_limpio$sexo <- as.factor(gensimpson_limpio$sexo)
+# - relevel(): Modifies factor category order to explicitly set 
+#   "Masculino" as the reference category in the statistical model.
+gensimpson_limpio$sexo <- relevel(gensimpson_limpio$sexo, ref = "Masculino")
+
+# C) Categorical Clinical Variables
+gensimpson_limpio$enfermedades <- as.factor(gensimpson_limpio$enfermedades)
+gensimpson_limpio$medicamento <- as.factor(gensimpson_limpio$medicamento)
+
+
+# 2. Predictor variables (Principal Component Tertiles - PCA)
+
+# - apply(): Applies a function across margins of an array or data frame.
+# - scores_pca: Matrix containing individual coordinates across principal components.
+# - quantile(..., probs = c(1/3, 2/3)): Calculates 33.33% and 66.67% percentiles 
+#   to split each principal component into three equal parts.
+terciles_generales <- apply(scores_pca, 2, quantile, probs = c(1/3, 2/3))
+
+# Add numeric scores to the main data frame
+gensimpson_limpio$PC1 <- scores_pca[, "PC1"]
+gensimpson_limpio$PC2 <- scores_pca[, "PC2"]
+gensimpson_limpio$PC3 <- scores_pca[, "PC3"]
+
+# Categorize the three principal components into tertiles (T1 as reference category)
+
+# - cut(): Divides a continuous numeric vector into discrete intervals.
+# - breaks: Defines limits using previously calculated cut points (-Inf to Inf).
+# - labels: Assigns categorical labels "T1", "T2", and "T3" (T1 being reference tertile).
+gensimpson_limpio$PC1_cat <- cut(gensimpson_limpio$PC1, 
+                                 breaks = c(-Inf, terciles_generales[1, "PC1"], terciles_generales[2, "PC1"], Inf), 
+                                 labels = c("T1", "T2", "T3"))
+
+gensimpson_limpio$PC2_cat <- cut(gensimpson_limpio$PC2, 
+                                 breaks = c(-Inf, terciles_generales[1, "PC2"], terciles_generales[2, "PC2"], Inf), 
+                                 labels = c("T1", "T2", "T3"))
+
+gensimpson_limpio$PC3_cat <- cut(gensimpson_limpio$PC3, 
+                                 breaks = c(-Inf, terciles_generales[1, "PC3"], terciles_generales[2, "PC3"], Inf), 
+                                 labels = c("T1", "T2", "T3"))
+
+
+# 3. Multivariate Logistic Regression Model
+
+# - glm(): Fits generalized linear models.
+# - family = binomial: Specifies a binomial distribution, transforming 
+#   the model into a standard logistic regression for a binary outcome (0/1).
+# Methodological note: Creatinine and bilirubin were excluded from this version 
+# due to prior collinearity issues and mathematical instability.
+modelo <- glm(sobrepeso ~ PC1_cat + PC2_cat + PC3_cat + 
+                edad_anios + sexo + 
+                glucosa_mg_dl + tg_mg_dl + colesterol_total_mg_dl + ldl_mg_dl + hdl_mg_dl + 
+                pas_mmhg + pad_mmhg +
+                albumina_g_dl + ast_u_l + alt_u_l + fosfatasa_alcalina_u_l + urea_mg_dl, 
+              data = gensimpson_limpio, 
+              family = binomial)
+
+# 4. Model quality and goodness-of-fit evaluation
+
+# cat("=== Summary and quality of logistic model ===\n")
+# cat("\nModel AIC:", AIC(modelo), "\n")
+# cat("Null deviance:", modelo$null.deviance, "| Residual deviance:", modelo$deviance, "\n")
+
+# 5. Functions for Extraction and Formatting of Statistical Parameters
+
+# A) Extraction of exponentiated estimates (Odds Ratios - OR)
+estimaciones_or <- exp(coef(modelo))
+# B) Extraction of 95% confidence intervals for ORs
+intervalos_ic <- suppressMessages(exp(confint(modelo)))
+# C) Extraction of p-values for model terms
+p_valores <- summary(modelo)$coefficients[, "Pr(>|z|)"]
+# D) Custom function to combine Odds Ratio and 95% CI into a single formatted text cell
+formatear_celda <- function(nombre_variable) {
+  or <- estimaciones_or[nombre_variable]
+  ic_inf <- intervalos_ic[nombre_variable, 1]
+  ic_sup <- intervalos_ic[nombre_variable, 2]
+  sprintf("%.1f (%.1f to %.1f)", or, ic_inf, ic_sup) # Style: "OR (Inf to Sup)" with 1 decimal
+}
+# E) Custom function for strict p-value formatting
+formatear_pvalue <- function(nombre_variable) {
+  pval <- p_valores[nombre_variable]
+  if (pval < 0.001) return("<0.001") else return(sprintf("%.3f", pval))
+}
+
+# 6. Automated parameter extraction for each variable
+
+# --- Principal Components ---
+celda_T2_OR_PC1 <- formatear_celda("PC1_catT2"); celda_T2_P_PC1 <- formatear_pvalue("PC1_catT2")
+celda_T3_OR_PC1 <- formatear_celda("PC1_catT3"); celda_T3_P_PC1 <- formatear_pvalue("PC1_catT3")
+
+celda_T2_OR_PC2 <- formatear_celda("PC2_catT2"); celda_T2_P_PC2 <- formatear_pvalue("PC2_catT2")
+celda_T3_OR_PC2 <- formatear_celda("PC2_catT3"); celda_T3_P_PC2 <- formatear_pvalue("PC2_catT3")
+
+celda_T2_OR_PC3 <- formatear_celda("PC3_catT2"); celda_T2_P_PC3 <- formatear_pvalue("PC3_catT3")
+celda_T3_OR_PC3 <- formatear_celda("PC3_catT3"); celda_T3_P_PC3 <- formatear_pvalue("PC3_catT3")
+
+# --- Adjustment Covariates ---
+celda_edad_OR      <- formatear_celda("edad_anios");            celda_edad_P      <- formatear_pvalue("edad_anios")
+celda_sexo_OR      <- formatear_celda("sexoFemenino");          celda_sexo_P      <- formatear_pvalue("sexoFemenino")
+celda_glucosa_OR   <- formatear_celda("glucosa_mg_dl");       celda_glucosa_P   <- formatear_pvalue("glucosa_mg_dl")
+celda_tg_OR        <- formatear_celda("tg_mg_dl");            celda_tg_P        <- formatear_pvalue("tg_mg_dl")
+celda_col_OR       <- formatear_celda("colesterol_total_mg_dl"); celda_col_P     <- formatear_pvalue("colesterol_total_mg_dl")
+celda_ldl_OR       <- formatear_celda("ldl_mg_dl");           celda_ldl_P       <- formatear_pvalue("ldl_mg_dl")
+celda_hdl_OR       <- formatear_celda("hdl_mg_dl");           celda_hdl_P       <- formatear_pvalue("hdl_mg_dl")
+celda_pas_OR       <- formatear_celda("pas_mmhg");            celda_pas_P       <- formatear_pvalue("pas_mmhg")
+celda_pad_OR       <- formatear_celda("pad_mmhg");            celda_pad_P       <- formatear_pvalue("pad_mmhg")
+celda_albumina_OR  <- formatear_celda("albumina_g_dl");          celda_albumina_P  <- formatear_pvalue("albumina_g_dl")
+celda_ast_OR       <- formatear_celda("ast_u_l");               celda_ast_P       <- formatear_pvalue("ast_u_l")
+celda_alt_OR       <- formatear_celda("alt_u_l");               celda_alt_P       <- formatear_pvalue("alt_u_l")
+celda_fosfatasa_OR <- formatear_celda("fosfatasa_alcalina_u_l"); celda_fosfatasa_P <- formatear_pvalue("fosfatasa_alcalina_u_l")
+celda_urea_OR      <- formatear_celda("urea_mg_dl");            celda_urea_P      <- formatear_pvalue("urea_mg_dl")
+
+
+# 7. Construction of the final results table
+
+tabla_df <- data.frame(
+  Variable = c(
+    "Component 1 tertiles", 
+    "Component 2 tertiles", 
+    "Component 3 tertiles", 
+    "Age (years)", 
+    "Sex (Female vs Male)",
+    "Glucose (mg/dL)",
+    "Triglycerides (mg/dL)",
+    "Total cholesterol (mg/dL)",
+    "LDL (mg/dL)",
+    "HDL (mg/dL)",
+    "Systolic blood pressure (mmHg)",
+    "Diastolic blood pressure (mmHg)",
+    "Albumin (g/dL)",
+    "AST (U/L)",
+    "ALT (U/L)",
+    "Alkaline phosphatase (U/L)",
+    "Urea (mg/dL)"
+  ),
+  
+  # T1 Column (Reference)
+  T1_OR = c("1 (Ref.)", "1 (Ref.)", "1 (Ref.)", 
+            celda_edad_OR, celda_sexo_OR, celda_glucosa_OR, 
+            celda_tg_OR, celda_col_OR, celda_ldl_OR, 
+            celda_hdl_OR, celda_pas_OR, celda_pad_OR,
+            celda_albumina_OR, celda_ast_OR, celda_alt_OR, 
+            celda_fosfatasa_OR, celda_urea_OR),
+  T1_P  = c("NA", "NA", "NA", 
+            celda_edad_P, celda_sexo_P, celda_glucosa_P, 
+            celda_tg_P, celda_col_P, celda_ldl_P, 
+            celda_hdl_P, celda_pas_P, celda_pad_P,
+            celda_albumina_P, celda_ast_P, celda_alt_P, 
+            celda_fosfatasa_P, celda_urea_P),
+  
+  # T2 Column
+  T2_OR = c(celda_T2_OR_PC1, celda_T2_OR_PC2, celda_T2_OR_PC3, 
+            celda_edad_OR, celda_sexo_OR, celda_glucosa_OR, 
+            celda_tg_OR, celda_col_OR, celda_ldl_OR, 
+            celda_hdl_OR, celda_pas_OR, celda_pad_OR,
+            celda_albumina_OR, celda_ast_OR, celda_alt_OR, 
+            celda_fosfatasa_OR, celda_urea_OR),
+  T2_P  = c(celda_T2_P_PC1, celda_T2_P_PC2, celda_T2_P_PC3, 
+            celda_edad_P, celda_sexo_P, celda_glucosa_P, 
+            celda_tg_P, celda_col_P, celda_ldl_P, 
+            celda_hdl_P, celda_pas_P, celda_pad_P,
+            celda_albumina_P, celda_ast_P, celda_alt_P, 
+            celda_fosfatasa_P, celda_urea_P),
+  
+  # T3 Column
+  T3_OR = c(celda_T3_OR_PC1, celda_T3_OR_PC2, celda_T3_OR_PC3, 
+            celda_edad_OR, celda_sexo_OR, celda_glucosa_OR, 
+            celda_tg_OR, celda_col_OR, celda_ldl_OR, 
+            celda_hdl_OR, celda_pas_OR, celda_pad_OR,
+            celda_albumina_OR, celda_ast_OR, celda_alt_OR, 
+            celda_fosfatasa_OR, celda_urea_OR),
+  T3_P  = c(celda_T3_P_PC1, celda_T3_P_PC2, celda_T3_P_PC3, 
+            celda_edad_P, celda_sexo_P, celda_glucosa_P, 
+            celda_tg_P, celda_col_P, celda_ldl_P, 
+            celda_hdl_P, celda_pas_P, celda_pad_P,
+            celda_albumina_P, celda_ast_P, celda_alt_P, 
+            celda_fosfatasa_P, celda_urea_P),
+  
+  stringsAsFactors = FALSE
+)
+
+# Set clean column headers
+colnames(tabla_df) <- c("", "OR (95% CI)", "P value", "OR (95% CI)", "P value", "OR (95% CI)", "P value")
+
+# Render and format table using kable and kableExtra
+tabla_regresion <- kable(tabla_df, format = "html", align = "lcccccc", escape = FALSE) %>%
+  kable_styling(bootstrap_options = c("striped", "hover", "bordered", "condensed"), full_width = FALSE) %>%
+  add_header_above(c(" " = 1, "T1" = 2, "T2" = 2, "T3" = 2), bold = TRUE) %>%
+  add_header_above(c("Logistic Regression Table. Multivariate Risk of Overweight" = 7), 
+                   align = "l", font_size = "large", bold = TRUE, background = "white") %>%
+  footnote(general = "Note: Multivariate logistic regression model evaluating the risk of overweight (BMI >= 25 kg/m^2). The main predictor variables correspond to the tertiles (T1, T2, T3) of the principal components (PC1, PC2, PC3) from genetic PCA, with T1 as the reference category. The model was simultaneously adjusted for age, sex, biochemical profile, blood pressure, and selected liver/kidney function tests. Odds Ratios (OR) express adjusted associations.", 
+           general_title = "")
+
+
+# 8. Generation of quality and statistical summary tables
+
+# A) Detailed table of log coefficients (Betas and z-tests)
+
+coef_df <- as.data.frame(summary(modelo)$coefficients)  
+colnames(coef_df) <- c("Estimate (β)", "Standard Error", "z Statistic", "P value")  
+coef_df$`Estimate (β)` <- sprintf("%.3f", coef_df$`Estimate (β)`)
+coef_df$`Standard Error` <- sprintf("%.3f", coef_df$`Standard Error`)
+coef_df$`z Statistic` <- sprintf("%.3f", coef_df$`z Statistic`)
+coef_df$`P value` <- ifelse(as.numeric(coef_df$`P value`) < 0.001, "<0.001", sprintf("%.3f", as.numeric(coef_df$`P value`)))
+
+tabla_coeficientes <- kable(coef_df, format = "html", align = "lcccc", escape = FALSE) %>%
+  kable_styling(bootstrap_options = c("striped", "hover", "bordered", "condensed"), full_width = FALSE) %>%
+  row_spec(0, bold = TRUE, background = "#f2f2f2") %>%
+  add_header_above(c("Statistical Summary of Logistic Model Coefficients" = 5), 
+                   align = "l", font_size = "large", bold = TRUE, background = "white")
+
+# B) Overall Goodness-of-Fit Table (AIC and Deviances)
+calidad_df <- data.frame(
+  Metrica = c(
+    "Akaike Information Criterion (AIC)", 
+    "Null Deviance", 
+    "Residual Deviance", 
+    "Residual degrees of freedom", 
+    "Analyzed sample size (N)"
+  ),
+  Valor = c(
+    sprintf("%.2f", AIC(modelo)),
+    sprintf("%.2f", modelo$null.deviance),
+    sprintf("%.2f", modelo$deviance),
+    modelo$df.residual,
+    length(modelo$y)
+  ),
+  stringsAsFactors = FALSE
+)
+
+colnames(calidad_df) <- c("Global Fit Metric", "Statistical Value")
+
+tabla_calidad <- kable(calidad_df, format = "html", align = "lc", escape = FALSE) %>%
+  kable_styling(bootstrap_options = c("striped", "hover", "bordered", "condensed"), full_width = FALSE) %>%
+  row_spec(0, bold = TRUE, background = "#f2f2f2") %>%
+  add_header_above(c("Model Quality and Goodness-of-Fit Evaluation" = 2), 
+                   align = "l", font_size = "large", bold = TRUE, background = "white") %>%
+  footnote(general = "Note: A lower AIC value indicates a better balance of parsimony. The difference between null and residual deviance evaluates overall explanatory power.", 
+           general_title = "") 
+
+# 9. Table visualization
+
+tabla_regresion
+tabla_coeficientes
+tabla_calidad
+
+``` 
+
+Plot of the logistic regression analysis results for the OR variables
+
+``` {r, message=FALSE, warning=FALSE}
+
+# STEP 1: Structured extraction of regression model parameters
+
+# Create a data frame extracting regression coefficients from the 'modelo' object.
+# Since 'modelo' comes from a glm(..., family = binomial), the original coefficients
+# are on the log-odds scale (\beta), so we apply exp() to 
+# obtain Odds Ratios (OR) and their confidence intervals.
+
+datos_forest <- data.frame(
+  # Extract the names of each term/independent variable from the model
+  Variable_raw = names(coef(modelo)),
+  
+  # Transform \beta coefficients to Odds Ratios: OR = exp(\beta)
+  OR = exp(coef(modelo)),
+  
+  # Calculate 95% confidence intervals based on profile likelihood
+  # and exponentiate them. [, 1] extracts the lower bound (2.5%)
+  IC_lower = suppressMessages(exp(confint(modelo)))[, 1],
+  
+  # [, 2] extracts the upper bound of the confidence interval (97.5%)
+  IC_upper = suppressMessages(exp(confint(modelo)))[, 2],
+  
+  # Extract the p-values column (Pr(>|z|)) from the coefficients table
+  P_value = summary(modelo)$coefficients[, "Pr(>|z|)"]
+)
+
+
+# STEP 2: Cleaning, recoding labels, and significance categorization
+
+datos_forest <- datos_forest %>%
+  # Exclude the intercept (\beta_0) since it does not represent a predictor variable of interest
+  filter(Variable_raw != "(Intercept)") %>%
+  
+  # Create columns for human-readable labels and statistical classification
+  mutate(
+    # Mapping internal R names to formal publication labels
+    Etiqueta = case_when(
+      Variable_raw == "PC1_catT2" ~ "Component 1 (Tertile 2 vs T1)",
+      Variable_raw == "PC1_catT3" ~ "Component 1 (Tertile 3 vs T1)",
+      Variable_raw == "PC2_catT2" ~ "Component 2 (Tertile 2 vs T1)",
+      Variable_raw == "PC2_catT3" ~ "Component 2 (Tertile 3 vs T1)",
+      Variable_raw == "PC3_catT2" ~ "Component 3 (Tertile 2 vs T1)",
+      Variable_raw == "PC3_catT3" ~ "Component 3 (Tertile 3 vs T1)",
+      Variable_raw == "edad_anios" ~ "Age (per year)",
+      Variable_raw == "sexoFemenino" ~ "Sex (Female vs Male)",
+      Variable_raw == "glucosa_mg_dl" ~ "Glucose (mg/dL)",
+      Variable_raw == "tg_mg_dl" ~ "Triglycerides (mg/dL)",
+      Variable_raw == "colesterol_total_mg_dl" ~ "Total cholesterol (mg/dL)",
+      Variable_raw == "ldl_mg_dl" ~ "LDL (mg/dL)",
+      Variable_raw == "hdl_mg_dl" ~ "HDL (mg/dL)",
+      Variable_raw == "pas_mmhg" ~ "SBP (mmHg)",
+      Variable_raw == "pad_mmhg" ~ "DBP (mmHg)",
+      Variable_raw == "albumina_g_dl" ~ "Albumin (g/dL)",
+      Variable_raw == "ast_u_l" ~ "AST (U/L)",
+      Variable_raw == "alt_u_l" ~ "ALT (U/L)",
+      Variable_raw == "fosfatasa_alcalina_u_l" ~ "Alkaline Phosphatase (U/L)",
+      Variable_raw == "urea_mg_dl" ~ "Urea (mg/dL)",
+      TRUE ~ Variable_raw  # Keeps original name if any variable does not match
+    ),
+    
+    # Dichotomous variable to assign color code based on threshold \alpha = 0.05
+    Significativo = ifelse(P_value < 0.05, "p < 0.05", "p ≥ 0.05")
+  )
+
+# Convert 'Etiqueta' column to factor with reversed order rev().
+# This ensures ggplot2 displays variables top-to-bottom 
+# in the exact order they were entered into the model formula.
+datos_forest$Etiqueta <- factor(datos_forest$Etiqueta, levels = rev(datos_forest$Etiqueta))
+
+
+# STEP 3: Construction of graphic layer using ggplot2
+
+# Main aesthetic definition: X is OR magnitude, Y are variables, 
+# and element color depends on statistical significance.
+grafica_or <- ggplot(datos_forest, aes(x = OR, y = Etiqueta, color = Significativo)) +
+  
+  # Vertical reference line at OR = 1 (Null value: neither risk nor protection)
+  geom_vline(xintercept = 1, linetype = "dashed", color = "gray50", size = 0.7) +
+  
+  # Draw horizontal error bars for 95% CI (xmin to xmax)
+  geom_errorbarh(aes(xmin = IC_lower, xmax = IC_upper), height = 0.25, size = 0.8) +
+  
+  # Draw point estimate of Odds Ratio as a central point
+  geom_point(size = 3) +
+  
+  # Set X-axis scale to logarithmic scale (biostatistical standard for OR).
+  # Explicitly define breaks and label text format
+  scale_x_log10(
+    breaks = c(0.01, 0.05, 0.1, 0.2, 0.5, 1.0, 2.0, 5.0, 10.0),
+    labels = c("0.01", "0.05", "0.1", "0.2", "0.5", "1.0", "2.0", "5.0", "10.0")
+  ) +
+  
+  # Expand visible area limits without cropping points falling at low values
+  # (e.g. OR < 0.1), preventing ggplot2 from hiding out-of-range elements.
+  coord_cartesian(xlim = c(0.01, 15.0)) +
+  
+  # Manual assignment of corporate/academic colors (Red for significant, Blue for non-significant)
+  scale_color_manual(values = c("p < 0.05" = "#D9534F", "p ≥ 0.05" = "#4A90E2")) +
+  
+  # Titles, subtitles, and axis labels (using \n for line break in title)
+  labs(
+    title = "Factors associated with Overweight risk\n(BMI ≥ 25 kg/m²)",
+    subtitle = "Adjusted Odds Ratios (OR) and 95% Confidence Intervals",
+    x = "Odds Ratio (Logarithmic scale)",
+    y = NULL,
+    color = "Significance"
+  ) +
+  
+  # STEP 4: Aesthetic customization of visual theme
+
+  theme_minimal(base_size = 11) +
+  theme(
+    # Main title format (bold and line spacing)
+    plot.title = element_text(face = "bold", size = 13, hjust = 0, lineheight = 1.2),
+    
+    # Subtitle format
+    plot.subtitle = element_text(size = 10, color = "gray30", margin = margin(b = 12)),
+    
+    # Y-axis labels style (variable names in bold)
+    axis.text.y = element_text(face = "bold", color = "black", size = 9.5),
+    
+    # X-axis values style
+    axis.text.x = element_text(color = "black", size = 8.5),
+    
+    # X-axis title style
+    axis.title.x = element_text(face = "bold", margin = margin(t = 10)),
+    
+    # Legend position at the bottom
+    legend.position = "bottom",
+    
+    # Removal of unnecessary minor grid lines to clean plot
+    panel.grid.minor = element_blank(),
+    panel.grid.major.y = element_line(color = "gray92"),
+    
+    # Outer canvas margins (top, right, bottom, left) in points
+    plot.margin = margin(t = 15, r = 20, b = 15, l = 15)
+  )
+
+# Display OR plot
+grafica_or
+``` 
+
+# Results
+
+## Normality Evaluation of Gene Expression
+
+Based on the Shapiro-Wilk test results, the $p$-values obtained for the gene expression variables are lower than the established significance level ($\text{p-value} < 0.05$). This indicates that the data fall outside the 95% confidence interval defined by the theoretical Gaussian distribution curve. Therefore, the null hypothesis ($H_0$) is rejected, formally concluding that the expression data do not follow a normal distribution. This finding methodologically justifies the use of non-parametric statistics (such as the median and interquartile range) throughout the analysis, as shown in Model Table 1.
+
+
+``` {r}
+tabla_1
+``` 
+
+## Dimensionality Reduction and Variance (PCA)
+
+Principal Component Analysis (PCA) enabled the exploration of the multivariate structure of the dataset, initially revealing in the PCA Components and $R^2$ Table that variance retention is distributed in a decreasing manner, where the first principal component (PC1) captures 12.48% of the biological variability and PC2 captures 8.56%. This indicates that the sample is highly heterogeneous and that the patients' genetic profiles depend on multiple simultaneous metabolic pathways rather than a single dominant marker. To determine exactly which genes drive this variability along each of these axes, the PCA Loadings Table provides evidence that in PC1, the *POMC* (0.373) and *ANO4* (0.364) genes make positive contributions, while the *MC4R* gene (-0.225) exerts the strongest negative influence along that same dimension.
+
+``` {r}
+tabla_modelo_pca
+tabla_modelo_cargas
+``` 
+
+To explore the expression profile, a Principal Component Analysis (PCA) was performed. Figure 1 (Scree plot) indicates that the first principal component (PC1) captures 12.5% of the total variance, followed by 8.6% in PC2, demonstrating high complexity as variance retention gradually stabilizes across subsequent dimensions. Spatially, Figure 4 (General Biplot) simultaneously projects patients and gene vectors to highlight the drivers of this variability, showing that genes such as *POMC*, *ANO4*, and *LEPR* exhibit the longest vectors toward the positive side of PC1, in direct contrast to genes like *MC4R* and *SIM1* that pull toward the left negative extreme. Furthermore, the close directionality of the arrows in this same Figure 7 indicates the presence of a block of highly correlated genes (such as *POMC*, *ADCY3*, and *PCSK1*) directing the distribution toward the lower right quadrant, a region toward which individuals 1 and 2 drastically separate from the central cluster, providing visual evidence that the genetic profile of these outlier subjects is strongly dominated by the overexpression of this specific cluster.
+
+``` {r}
+grafico_varianza
+grafico_biplot
+fig_contrib_dim1
+``` 
+
+## Clustering Patterns and Heatmaps
+
+To identify latent subpopulations based on genetic profiles, Figure 6 (Variable clustering) first shows the division of genes into three groups, highlighting a blue cluster (group 1) that clusters genes such as *POMC*, *LEPR*, and *ANO4* with vector trajectories strongly oriented toward the right, suggesting a joint co-expression associated with positive PC1 values. This directional behavior explains the observations at the sample level in Figure 9 (Individual clustering), where, although most patients concentrate in central clusters 1 (blue) and 2 (yellow) with moderate overlap, cluster 3 (orange) exhibits no overlap and drastically isolates outlier individuals 1 and 2 at the far right of the spatial plane, demonstrating that their unique molecular phenotype is dominated by the extreme overexpression of that specific block. Finally, the relevance of this distribution is confirmed from a clinical perspective in Figure 8 (Individuals in PCA space by BMI Category), which reveals that while patients with a "Normal" or "Underweight" diagnosis remain clustered near the origin, the large ellipse corresponding to "Obesity" (orange squares) projects predominantly and dispersedly toward that same right end of the plot; this statistically demonstrates that the genetic variability captured by the main axis is not random, but establishes a latent and direct association between the overexpression of the *POMC*/*LEPR*/*ANO4* gene cluster and the development of a severe weight phenotype in the simulated population.
+
+```{r}
+fig_var_cluester
+fig_ind_cluster
+fig_ind_imc
+``` 
+
+To validate the exact relationship between genes and latent dimensions, Figure 10 reveals that the first principal component (PC1) is strongly driven by positive correlations with genes such as *POMC* (0.43) and *LEPR* (0.39), in contrast to marked negative correlations in *GPR151* (-0.43) and *MC4R* (-0.34), which explains the direction of the vectors observed in the spatial analysis. To confirm that this statistical structure reflects a biological reality, Figure 11 displays the standardized matrix, where the overall mosaic visualizes the high sample heterogeneity; however, it strongly highlights at the lower margin that the outlier subjects Patient 1 and Patient 2 concentrate intense red blocks denoting high overexpression in key PC1 genes (such as *POMC* and *LEPR*), accompanied by dark blue blocks in their antagonists. This directly demonstrates with the raw data why these individuals were isolated into a differential cluster associated with obesity in previous models, visually verifying that their clinical phenotype is driven by an extreme and simultaneous transcriptional dysregulation of this specific gene profile.
+
+``` {r}
+
+heatmap_spearman
+heatmap_crudo
+``` 
+## Descriptive Characterization by Genetic Strata
+
+To validate whether the dimensions capture tangible biological changes, the population was stratified into tertiles (T1, T2, T3) according to their PCA scores, presenting the variance of these groups in the Descriptive Table: Stratified descriptive analysis by tertiles. In this table, using the non-parametric Kruskal-Wallis test, statistically significant differences in transcription levels are confirmed across spatial strata; specifically, Component 1 demonstrates progressive gradients in the median expression of biomarkers such as *ADCY3* ($p = 0.016$) and *GPR151* ($p = 0.006$), while Component 2 reflects highly striking variations in genes such as *CADM2* ($p = 7.39\text{e-}05$), which exhibits a drastic jump in expression in the third tertile, and Component 3 captures differences driven by markers such as *FTO* ($p = 5.46\text{e-}04$). These findings, using medians and interquartile ranges in accordance with the non-normal distribution of the data, demonstrate that the spatial position assigned to each patient is not random, but is based on measurable genetic fluctuations that biologically differentiate the analyzed subpopulations.
+
+``` {r}
+# Overall Descriptive Table (gtsummary)
+tabla_descriptiva_final
+``` 
+
+## Clinical Risk Predictive Model (Logistic Regression)
+
+To evaluate the association between genetic profiles and the risk of overweight or obesity while controlling for multiple demographic and biochemical covariates, a multivariate logistic regression model was fitted. Its results, detailed in the Logistic Regression Table and the OR plot: Multivariate Risk of Overweight, reveal that the third tertile of Component 2 exhibits a protective and statistically significant association with an adjusted Odds Ratio of $0.0$ (95% CI: $0.0$ to $0.7$, $p = 0.047$); this finding is quantitatively supported in the Statistical Summary of Logistic Model Coefficients by a negative $\beta$ coefficient of $-3.119$ ($p = 0.047$), indicating that, upon isolating metabolic confounding factors, this genetic stratum inversely modulates the probability of the adverse weight phenotype. Likewise, the overall robustness of this predictive structure is corroborated in the Model Quality and Goodness-of-Fit Evaluation, which registers an Akaike Information Criterion (AIC) of $90.30$ and a remarkable reduction from a null deviance of $81.37$ to a residual deviance of $48.30$ ($38$ degrees of freedom with $N = 59$), demonstrating that the joint integration of clinical and genetic variables provides the model with high overall explanatory power without compromising its parsimony.
+
+``` {r}
+
+tabla_regresion
+grafica_or
+tabla_coeficientes
+tabla_calidad
+``` 
+
+# Discussion
+
+The findings of this study strongly support the initial hypothesis, demonstrating that the variance of the 37 evaluated genes follows a non-random biological structure that determines the population metabolic phenotype. Principal Component Analysis (PCA) achieved the analytical objective of identifying clinical risk clusters, revealing that obesity responds to complex co-expression networks driven by the synergistic overexpression of the *POMC*, *LEPR*, and *ANO4* genes, in clear antagonism with *MC4R* and *SIM1*. This transcriptional signature breaks with the homeostasis observed in normal weight and validates phenotypic differences through expression gradients in specific genes (*ADCY3*, *GPR151*, *CADM2*, *FTO*). Crucially, the hypothesized risk prediction was empirically confirmed by integrating these dimensions into a multivariate logistic regression ($\text{AIC} = 90.30$): after adjusting for demographic variables and biochemical markers, the third tertile of Component 2 dominated by *CADM2* acted as a significant protective factor against adiposity ($\text{OR} = 0.0$, $p = 0.047$).
+
+
+# Conclusions
+
+Integrative gene analysis using dimensionality reduction (PCA) and clustering revealed marked biological heterogeneity within the population, identifying that variability is driven by energy-balance multigenic clusters (*POMC*, *LEPR*, *ANO4*) that allow for the isolation of an atypical molecular phenotype directly associated with the clinical diagnosis of obesity. These spatial patterns and their transcriptional gradient were rigorously validated using Spearman correlation heatmaps and non-parametric Kruskal-Wallis tests, confirming real and significant fluctuations in median gene expression across population strata. 
+
+Likewise, fitting the multivariate logistic regression model demonstrated that incorporating latent genetic profiles, while controlling for demographic and biochemical covariates, provides solid global explanatory power evidenced by a marked reduction in residual deviance down to $48.30$ and an $\text{AIC}$ of $90.30$. Specifically, the third tertile of Component 2 emerged as a statistically significant modulator of weight-related risk ($\text{OR} = 0.0$, $p = 0.047$), highlighting the clinical and predictive utility of integrating genetic dimensionality into the assessment of overweight and obesity.
+
+# References
+
+1. Bernardo I. Towards Data Science [Internet]. 2021 abr. 26. Best Practices for R Programming [citado 2026  octubre. 3].
+ Disponible: https://towardsdatascience.com/best-practices-for-r-programming-ec0754010b5a
+
+2. Wickham H. ggplot2: elegant graphics for data analysis [Internet]. New York: Springer-Verlag; [citado 2023 junio 15]. Disponible en: https://link.springer.com/book/10.1007/978-0-387-98141-3 
+
+3. Gu Z, Eils R, Schlesner M. Complex heatmaps reveal patterns and correlations in multidimensional genomic data. Bioinformatics [Internet]. 2016 Sep 15 [citado 2023 Jun 15]:32(18):2847-9. Disponible en: https://dx.doi.org/10.1093/bioinformatics/btw313 
+
+4. Daniel WW y Cross CL. Biostatistics: a foundation for analysis in the health sciences. Wiley; 2019 
+
+5. olles J, Meurer WJ. Logistic Regression: relating patient characteristics to outcomes. JAMA. 2016 ag. 2; 316(5): 533
+
+6. McNeish D, Kelley K. Fixed effects models versus mixed effects models for clustered data: Reviewing the approaches, disentangling the differences, and making recommendations. Psychol Methods. 2019 febr.; 24(1): 20-35
+
+7. Pudil P y Novovičová J. Feature Extraction, Construction and Selection. Springer; 1998, Novel Methods for Feature Subset Selection with Respect to Problem Knowledge; p. 101-116
+
+8. Alavi M, Visentin DC, Thapa DK, Hunt GE, Watson R y Cleary M. Exploratory factor analysis and principal component analysis in clinical studies: Which one should you use? J Adv Nurs. 2020 Ag. 4; 76(8): 1886-9 
+
+9. Bartholomew D.J, Steele F, Galbraith, J y Moustaki I. Analysis of Multivariate Social Science Data. Statistics in the Social and Behavioral Sciences Series. Segunda edición. Taylor & Francis; 2008
+
+10. Cattell RB. The Scree Test for The Number of Factors. Multivariate Behav Res. 1966 Abr.; 1(2): 245-76
+
+# Session Information
+
+``` {r}
+
+sessionInfo()
+
+```
