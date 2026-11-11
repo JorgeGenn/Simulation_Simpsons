@@ -93,7 +93,9 @@ mis_paquetes <- c(
 ### Option 1: Local R Environment
 
    ```bash
-   git clone https://github.com/JorgeGenn/simpsons-gene-expression-r.git
+   git clone https://github.com/JorgeGenn/Simulation_Simpsons.git
+
+cd Simulation_Simpsons
 
    cd simpsons-gene-expression-r
 1. Open the project in RStudio and restore dependencies:
@@ -107,7 +109,7 @@ mis_paquetes <- c(
 
 ### Option 2: Docker Container 
    ```bash
-git clone https://github.com/JorgeGenn/simpsons-gene-expression-r.git
+git clone https://github.com/JorgeGenn/Simulation_Simpsons.git
 
 1. Build the Docker image:
 
