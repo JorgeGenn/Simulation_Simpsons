@@ -128,8 +128,10 @@ sudo docker run -d -p 8787:8787 -e PASSWORD=Simulation --name simpsons simpsons-
 ---
 
 ## ✒️ Author
+**Date**: September 30, 2026
 
 * **Jorge Hurtado Soriano**
+* 
 ---
 
 ## 📜 License
