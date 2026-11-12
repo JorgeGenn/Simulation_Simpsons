@@ -122,7 +122,7 @@ cd Simulation_Simpsons
 sudo docker run -d -p 8787:8787 -e PASSWORD=Simulation --name simpsons simpsons-biostats
 
    Password: Simulation
-   name: Simpsons
+   name: rstudio
    ```
 
 ---
