@@ -194,7 +194,7 @@ simpson_genes <- read_csv("simpson_genes.csv")
 
 ``` 
 
-Limpieza de datos: Se Verifica que no haya datos faltantes en las variables de expresión génica (ADCY3 hasta UHMK1) y si existen NA, se eliminan las filas incompletas.
+Data cleaning: We verify that there is no missing data in the gene expression variables (ADCY3 through UHMK1), and if there are NA values, we remove the incomplete rows.
 
 ``` {r}
 
@@ -227,7 +227,7 @@ The methodological approach was structured around two main axes: 1) assessing th
 
 # 1. Load the external dataset CSV file
 # The argument 'show_col_types = FALSE' prevents technical messages from being printed in the console.
-info_dataset <- read_csv("Información de interés del dataset.csv", show_col_types = FALSE)
+info_dataset <- read_csv("data/Información de interés del dataset.csv", show_col_types = FALSE)
 
 # 2. Construction and styling of the HTML table
 
