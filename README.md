@@ -117,8 +117,10 @@ git clone https://github.com/JorgeGenn/Simulation_Simpsons.git
 
 2. Run the container and access RStudio Server at http://localhost:8787:
 
-sudo docker run -d -p 8787:8787 -e PASSWORD=yourpassword --name simpsons-rstudio simpsons-biostats
+sudo docker run -d -p 8787:8787 -e PASSWORD=Simulation --name simpsons simpsons-biostats
 
+   Password: Simulation
+   name: Simpsons
    ```
 
 ---
