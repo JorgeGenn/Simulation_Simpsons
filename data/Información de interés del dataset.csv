@@ -1,0 +1,59 @@
+Variable,Nombre Completo,Label
+nombre,,
+edad_anios,Edad,En años.
+sexo,Sexo,"Masculino, femenino, u otras identidades de género."
+altura,Altura,Medida de la estatura en centímetros o metros.
+peso_kg,Peso,Masa corporal en kilogramos.
+imc_kg_m2,Índice de Masa Corporal (IMC),Relación entre el peso y la altura (kg/m²).
+ccintura_cm,Circunferencia de la cintura,Medida en centímetros que indica la distribución de grasa abdominal.
+ccadera_cm,Circunferencia de la cadera,Medida en centímetros que ayuda a evaluar la distribución de grasa corporal.
+grasa_corporal_pct,Porcentaje de grasa corporal,Medida de la cantidad de grasa en relación con el peso total.
+longitud_brazos_cm,Pliegues cutáneos,"Mediciones de la grasa subcutánea en diferentes partes del cuerpo (tríceps, bíceps, subescapular, suprailiaca, etc.)."
+longitud_piernas_cm,Longitud de brazos y piernas,Medidas que pueden ayudar a evaluar la proporción corporal.
+diametro_biacromial_cm,Diámetro biacromial,Distancia entre los puntos más externos de los hombros.
+diametro_bicrestal_cm,Diámetro bicrestal,Distancia entre los puntos más externos de las crestas ilíacas.
+estado_civil,Estado civil,"Soltero, casado, divorciado, viudo."
+nivel_educativo,Nivel educativo,"Primaria, secundaria, educación superior, etc."
+ocupacion,Ocupación,Profesión o actividad laboral.
+ingreso_anual_usd,Ingreso económico,Nivel de ingresos familiares o personales.
+lugar_residencia,Lugar de residencia,"Urbano, rural; localidad, región, etc."
+etnicidad,Etnicidad,Grupo étnico o racial al que pertenece la persona.
+situacion_vivienda,Situación de vivienda,"Propia, alquilada, condiciones de habitabilidad."
+composicion_familiar,Composición familiar,Número de miembros en el hogar y relaciones familiares.
+enfermedades,Prevalencia de enfermedades,"Enfermedades previas y actuales, cirugías, condiciones crónicas."
+medicamentos,Medicamentos,"Uso actual de medicamentos, tratamientos, y dosis."
+frutas_g_d,Frutas (g/d),gramos dia en el ultimo año
+verduras_g_d,Verduras (g/d),gramos dia en el ultimo año
+cereales_g_d,Cereales (g/d),gramos dia en el ultimo año
+legumbres_g_d,Legumbres (g/d),gramos dia en el ultimo año
+frutos_secos_g_d,Frutos secos (g/d),gramos dia en el ultimo año
+lacteos_g_d,Lácteos (g/d),gramos dia en el ultimo año
+carnes_g_d,Carnes (g/d),gramos dia en el ultimo año
+pescados_g_d,Pescados (g/d),gramos dia en el ultimo año
+huevos_g_d,Huevos (g/d),gramos dia en el ultimo año
+aceites_g_d,Aceites (g/d),gramos dia en el ultimo año
+bolleria_industrial_g_d,bolleria industrial (g/d),gramos dia en el ultimo año
+af_moderada_h_semana,AF moderada (h/semana),
+af_intensa_h_semana,AF intensa (h/semana),
+tabaco,"tabaco (fumador, exfumador, no fumador)",
+alcohol,"alcohol (frecuente, moderado, social, abstemio)",
+pad_mmhg,PAD,
+pas_mmhg,PAS,
+glucosa_mg_dl,Glucosa,
+tg_mg_dl,TG,
+colesterol_total_mg_dl,Colesterol total,
+ldl_mg_dl,LDL,
+hdl_mg_dl,HDL,
+albumina_g_dl,albumina,
+bilirrubina_mg_dl,bilirrubina,
+ast_u_l,Aspartato aminotransferasa,
+alt_u_l,Alanina aminotransferasa,
+fosfatasa_alcalina_u_l,Fosfatasa alcalina,
+creatinina_mg_dl,Creatinina,
+urea_mg_dl,Urea,
+il6_pg_ml,IL6,
+tnf_alpha_pg_ml,TNF-alpha,
+ansiedad,ansiedad,
+depresion,depresion,
+trastornos,trastornos,
+cirugias,cirugias,
