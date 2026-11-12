@@ -1,0 +1,10 @@
+Abre tu navegador web e ingresa a la dirección: http://localhost:8787
+
+El usuario por defecto de la imagen de RStudio Docker es rstudio y la contraseña es la que definiste en la variable -e PASSWORD= (yourpassword).
+
+Credenciales de acceso:
+
+Username: rstudio
+
+Password: yourpassword
+
