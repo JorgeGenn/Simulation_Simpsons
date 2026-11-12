@@ -182,15 +182,9 @@ The provided dataset is imported to perform the analysis.
 
 ``` {r, message=FALSE, warning=FALSE}
 
-# 1. Link to the hosted dataset to allow automated replication of the study
-url_drive <- "https://drive.google.com/uc?export=download&id=1g4fhGhpMvN9PG6eArcLrf1Si3QwriXn8&confirm=t"
+# read the CSV and data
 
-# 2. Download the file locally
-download.file(url_drive, destfile = "simpson_genes.csv", mode = "wb")
-
-# 3. Read the CSV file
-simpson_genes <- read_csv("simpson_genes.csv")
-
+simpson_genes <- read_csv("data/Base_de_datos_Los Simpson_completa.csv")
 
 ``` 
 
