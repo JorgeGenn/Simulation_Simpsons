@@ -111,6 +111,8 @@ cd Simulation_Simpsons
    ```bash
 git clone https://github.com/JorgeGenn/Simulation_Simpsons.git
 
+cd Simulation_Simpsons
+
 1. Build the Docker image:
 
  sudo docker build -t simpsons-biostats .
